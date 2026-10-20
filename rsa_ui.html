@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSA Schlüsselgenerierung</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #1a1a1a;
+            --input-bg: #f5f5f5;
+            --border: #e0e0e0;
+            --accent: #1976d2;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #1a1a1a;
+                --text: #f0f0f0;
+                --input-bg: #2d2d2d;
+                --border: #404040;
+                --accent: #64b5f6;
+            }
+            :root[data-theme="dark"] {
+                --bg: #1a1a1a;
+                --text: #f0f0f0;
+                --input-bg: #2d2d2d;
+                --border: #404040;
+                --accent: #64b5f6;
+            }
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .field-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .inputs-row {
+            display: flex;
+            gap: 12px;
+        }
+        .inputs-row input {
+            flex: 1;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+        }
+        .button {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--accent);
+            transition: all 0.2s;
+        }
+        .button:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        .button:active {
+            transform: scale(0.98);
+        }
+        .calculate-btn {
+            width: 100%;
+            padding: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .result {
+                background: #2a2a2a;
+                border: 1px solid #404040;
+            }
+        }
+        .result-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .result-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+        }
+        .result-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .status {
+            font-size: 0.8rem;
+            margin-top: 6px;
+            min-height: 1em;
+        }
+        .status.ok {
+            color: #2e7d32;
+        }
+        .status.error {
+            color: #c62828;
+        }
+        @media (prefers-color-scheme: dark) {
+            .status.ok {
+                color: #66bb6a;
+            }
+            .status.error {
+                color: #ef5350;
+            }
+        }
+
+        /* Schlüssel-Displays */
+        .keys-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        .key-display {
+            background: var(--input-bg);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .key-display {
+                background: #3a3a3a;
+            }
+        }
+        .key-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .key-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 4px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .key-value {
+                color: #f0f0f0;
+            }
+        }
+        .key-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-family: 'Courier New', monospace;
+        }
+        @media (prefers-color-scheme: dark) {
+            .key-detail {
+                color: #888888;
+            }
+        }
+
+        /* Crypto Section */
+        .crypto-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        @media (prefers-color-scheme: dark) {
+            .crypto-section {
+                border-color: #404040;
+            }
+        }
+
+        /* Historie */
+        .history {
+            margin-top: 32px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+        .history h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+        }
+        .history-item {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .history-header {
+            background: var(--input-bg);
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .history-header:hover {
+            background: #e9ecef;
+        }
+        @media (prefers-color-scheme: dark) {
+            .history-header:hover {
+                background: #3a3a3a;
+            }
+        }
+        .history-arrow {
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+        .history-arrow.open {
+            transform: rotate(180deg);
+        }
+        .history-body {
+            display: none;
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+        }
+        .history-body.open {
+            display: block;
+        }
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+        .history-row:last-child {
+            margin-bottom: 0;
+        }
+        .history-key {
+            color: #6c757d;
+        }
+        .history-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>RSA Schlüsselgenerierung</h1>
+
+        <div class="field-group">
+            <label for="p">p (Primzahl)</label>
+            <input type="number" id="p" value="61" class="input-field" min="2">
+        </div>
+
+        <div class="field-group">
+            <label for="q">q (Primzahl)</label>
+            <input type="number" id="q" value="53" class="input-field" min="2">
+        </div>
+
+        <div class="field-group">
+            <button class="button" onclick="generateRandomPrimes()">Random Primzahl generieren</button>
+        </div>
+
+        <div class="field-group">
+            <label>n = p × q</label>
+            <div class="result">
+                <div class="result-label">n</div>
+                <div id="n-result" class="result-value">3233</div>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>φ(n) = (p − 1) × (q − 1)</label>
+            <div class="result">
+                <div class="result-label">φ(n)</div>
+                <div id="phi-result" class="result-value">3120</div>
+                <div id="phi-detail" class="result-detail">(61 − 1) × (53 − 1) = 60 × 52 = 3120</div>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label for="e">e (öffentlicher Exponent)</label>
+            <input type="number" id="e" value="17" class="input-field" min="3">
+            <div id="e-status" class="status"></div>
+        </div>
+
+        <div class="field-group">
+            <label>d (privater Exponent)</label>
+            <div class="result">
+                <div class="result-label">d</div>
+                <div id="d-result" class="result-value">—</div>
+                <div id="d-detail" class="result-detail">Berechnung läuft…</div>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>Erklärung</label>
+            <div class="result">
+                <div class="result-label">Wie d berechnet wird</div>
+                <div id="d-explanation" class="result-detail">—</div>
+            </div>
+        </div>
+
+        <div class="keys-section">
+            <h2>Schlüssel</h2>
+
+            <div class="key-display">
+                <div class="key-label">Öffentlicher Schlüssel</div>
+                <div class="key-value" id="public-key">(n, e) = (?, ?)</div>
+                <div class="key-detail" id="public-key-detail">—</div>
+            </div>
+
+            <div class="key-display">
+                <div class="key-label">Privater Schlüssel</div>
+                <div class="key-value" id="private-key">(n, d) = (?, ?)</div>
+                <div class="key-detail" id="private-key-detail">—</div>
+            </div>
+        </div>
+
+        <div class="crypto-section">
+            <h2>Verschlüsselung & Entschlüsselung</h2>
+
+            <div class="field-group">
+                <label for="message">Nachricht (als Text)</label>
+                <input type="text" id="message" class="input-field" placeholder="Text eingeben...">
+            </div>
+
+            <div class="field-group">
+                <button class="button" onclick="encryptMessage()">Verschlüsseln</button>
+                <button class="button" onclick="decryptMessage()">Entschlüsseln</button>
+            </div>
+
+            <div class="field-group">
+                <label>ASCII-Codes</label>
+                <div class="result">
+                    <div id="ascii-output" class="result-value">—</div>
+                    <div id="ascii-detail" class="result-detail">—</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label>Cipher / Klartext</label>
+                <div class="result">
+                    <div id="crypto-output" class="result-value">—</div>
+                    <div id="crypto-detail" class="result-detail">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history">
+            <h2>Letzte Berechnungen</h2>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const MAX_HISTORY = 5;
+        const PRIMES = [
+            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+            73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
+            157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
+            239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317,
+            331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419,
+            421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503,
+            509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607,
+            613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701
+        ];
+
+        let history = [];
+
+        function gcd(a, b) {
+            while (b) {
+                const t = b;
+                b = a % b;
+                a = t;
+            }
+            return Math.abs(a);
+        }
+
+        function modPow(base, exponent, modulus) {
+            // Schnelle modulare Exponenzierung: base^exponent mod modulus
+            if (modulus === 1) return 0;
+            let result = 1;
+            base = base % modulus;
+            while (exponent > 0) {
+                if ((exponent & 1) === 1) {
+                    result = (result * base) % modulus;
+                }
+                exponent = exponent >> 1;
+                base = (base * base) % modulus;
+            }
+            return result;
+        }
+
+        function modInverse(e, phi) {
+            // Erweiteter euklidischer Algorithmus: finde d, so dass (e * d) % phi = 1
+            let t = 0, newt = 1;
+            let r = phi, newr = e;
+            while (newr !== 0) {
+                const quotient = Math.floor(r / newr);
+                [t, newt] = [newt, t - quotient * newt];
+                [r, newr] = [newr, r - quotient * newr];
+            }
+            if (r > 1) return null; // inverses existieren nicht
+            if (t < 0) t = t + phi;
+            return t;
+        }
+
+        function addToHistory(p, q, n, phi, e, eValid, d) {
+            const entry = { p, q, n, phi, e, eValid, d, id: Date.now() };
+            history.unshift(entry);
+            if (history.length > MAX_HISTORY) {
+                history = history.slice(0, MAX_HISTORY);
+            }
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            history.forEach((entry) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                const header = document.createElement('div');
+                header.className = 'history-header';
+                header.innerHTML = `
+                    <span>p = ${entry.p}, q = ${entry.q}, e = ${entry.e}</span>
+                    <span class="history-arrow">▼</span>
+                `;
+                header.onclick = () => {
+                    const body = item.querySelector('.history-body');
+                    const arrow = item.querySelector('.history-arrow');
+                    const isOpen = body.classList.toggle('open');
+                    arrow.classList.toggle('open', isOpen);
+                };
+                const body = document.createElement('div');
+                body.className = 'history-body';
+                body.innerHTML = `
+                    <div class="history-row">
+                        <span class="history-key">n = p × q</span>
+                        <span class="history-value">${entry.n}</span>
+                    </div>
+                    <div class="history-row">
+                        <span class="history-key">φ(n)</span>
+                        <span class="history-value">${entry.phi}</span>
+                    </div>
+                    <div class="history-row">
+                        <span class="history-key">e</span>
+                        <span class="history-value">${entry.e}${entry.eValid ? '' : ' (ungültig)'}</span>
+                    </div>
+                    ${entry.d !== undefined ? `
+                    <div class="history-row">
+                        <span class="history-key">d</span>
+                        <span class="history-value">${entry.d !== null ? entry.d : 'nicht berechenbar'}</span>
+                    </div>` : ''}
+                `;
+                item.appendChild(header);
+                item.appendChild(body);
+                list.appendChild(item);
+            });
+        }
+
+        function checkE(e, phi) {
+            if (!e || e < 3) {
+                return { valid: false, message: 'e muss mindestens 3 sein.' };
+            }
+            if (e >= phi) {
+                return { valid: false, message: `e muss kleiner als φ(n) = ${phi} sein.` };
+            }
+            const g = gcd(e, phi);
+            if (g !== 1) {
+                return { valid: false, message: `Ungültig: ggT(e, φ(n)) = ${g} — muss 1 sein.` };
+            }
+            return { valid: true, message: `Gültig: ggT(e, φ(n)) = 1 ✓` };
+        }
+
+        function calculateRSA() {
+            const p = parseInt(document.getElementById('p').value);
+            const q = parseInt(document.getElementById('q').value);
+            const e = parseInt(document.getElementById('e').value);
+            const eStatus = document.getElementById('e-status');
+            const dResult = document.getElementById('d-result');
+            const dDetail = document.getElementById('d-detail');
+            const dExplanation = document.getElementById('d-explanation');
+
+            if (!p || !q || p === q) {
+                return;
+            }
+
+            const n = p * q;
+            const phi = (p - 1) * (q - 1);
+
+            document.getElementById('n-result').textContent = n;
+            document.getElementById('phi-result').textContent = phi;
+            document.getElementById('phi-detail').textContent =
+                `(${p} − 1) × (${q} − 1) = ${p - 1} × ${q - 1} = ${phi}`;
+
+            const eCheck = checkE(e, phi);
+            eStatus.textContent = eCheck.message;
+            eStatus.className = 'status ' + (eCheck.valid ? 'ok' : 'error');
+
+            if (eCheck.valid) {
+                const d = modInverse(e, phi);
+                if (d !== null) {
+                    const verification = (e * d) % phi;
+                    dResult.textContent = d;
+                    dDetail.textContent = `d ≡ e⁻¹ mod φ(n) → ${e} × ${d} ≡ ${verification} (mod ${phi})`;
+                    dExplanation.textContent =
+                        `d ist das multiplikative Inverse von e modulo φ(n): d × e ≡ 1 (mod ${phi}).\n` +
+                        `Hier: ${e} × ${d} = ${e * d} = ${Math.floor((e * d) / phi)} × ${phi} + ${verification}.\n` +
+                        `Da der Rest 1 ist, ist d = ${d} der korrekte private Exponent.`;
+                } else {
+                    dResult.textContent = '—';
+                    dDetail.textContent = 'Kein inverses Element gefunden.';
+                    dExplanation.textContent = 'φ(n) und e sind nicht teilerfremd — kein inverses Element existiert.';
+                }
+            } else {
+                dResult.textContent = '—';
+                dDetail.textContent = 'e ungültig — d kann nicht berechnet werden.';
+                dExplanation.textContent = '—';
+            }
+
+            addToHistory(p, q, n, phi, e, eCheck.valid, dResult.textContent === '—' ? null : parseInt(dResult.textContent));
+
+            // Schlüssel-Displays updaten
+            const publicKeyEl = document.getElementById('public-key');
+            const publicKeyDetail = document.getElementById('public-key-detail');
+            const privateKeyEl = document.getElementById('private-key');
+            const privateKeyDetail = document.getElementById('private-key-detail');
+
+            publicKeyEl.textContent = `(n, e) = (${n}, ${e})`;
+            publicKeyDetail.textContent = `n = p × q = ${p} × ${q} = ${n}\ne = ${e}`;
+
+            if (dResult.textContent !== '—') {
+                const d = parseInt(dResult.textContent);
+                privateKeyEl.textContent = `(n, d) = (${n}, ${d})`;
+                privateKeyDetail.textContent = `n = p × q = ${p} × ${q} = ${n}\nd = ${d} (e⁻¹ mod φ(n))`;
+            } else {
+                privateKeyEl.textContent = `(n, d) = (${n}, —)`;
+                privateKeyDetail.textContent = `n = p × q = ${p} × ${q} = ${n}\nd nicht berechenbar`;
+            }
+        }
+
+        function getValidKey() {
+            const p = parseInt(document.getElementById('p').value);
+            const q = parseInt(document.getElementById('q').value);
+            const e = parseInt(document.getElementById('e').value);
+            if (!p || !q || p === q) return null;
+            const n = p * q;
+            const phi = (p - 1) * (q - 1);
+            const d = parseInt(document.getElementById('d-result').textContent);
+            if (isNaN(d)) return null;
+            return { n, e, d, phi };
+        }
+
+        function encryptMessage() {
+            const key = getValidKey();
+            if (!key) {
+                document.getElementById('ascii-output').textContent = '—';
+                document.getElementById('ascii-detail').textContent = '—';
+                document.getElementById('crypto-output').textContent = '—';
+                document.getElementById('crypto-detail').textContent = '—';
+                return;
+            }
+
+            const text = document.getElementById('message').value;
+            const asciiOutput = document.getElementById('ascii-output');
+            const asciiDetailOut = document.getElementById('ascii-detail');
+            const cryptoOutput = document.getElementById('crypto-output');
+            const cryptoDetailOut = document.getElementById('crypto-detail');
+
+            if (!text) {
+                asciiOutput.textContent = '—';
+                asciiDetailOut.textContent = '—';
+                cryptoOutput.textContent = '—';
+                cryptoDetailOut.textContent = '—';
+                return;
+            }
+
+            // ASCII-Codes
+            const asciiCodes = [];
+            let asciiStr = '';
+            text.split('').forEach((char, i) => {
+                const code = char.charCodeAt(0);
+                asciiCodes.push(code);
+                asciiStr += `${char} → ${code}`;
+                if (i < text.length - 1) asciiStr += ', ';
+            });
+
+            asciiOutput.textContent = asciiCodes.join(' ');
+            asciiDetailOut.textContent = asciiStr;
+
+            // Verschlüsseln: c = m^e mod n
+            const cipherCodes = [];
+            let cryptoStr = '';
+            text.split('').forEach((char, i) => {
+                const m = char.charCodeAt(0);
+                const c = modPow(m, key.e, key.n);
+                cipherCodes.push(c);
+                cryptoStr += `${m}^${key.e} mod ${key.n} = ${c}`;
+                if (i < text.length - 1) cryptoStr += ', ';
+            });
+
+            cryptoOutput.textContent = cipherCodes.join(' ');
+            cryptoDetailOut.textContent = cryptoStr;
+        }
+
+        function decryptMessage() {
+            const key = getValidKey();
+            if (!key) {
+                document.getElementById('ascii-output').textContent = '—';
+                document.getElementById('ascii-detail').textContent = '—';
+                document.getElementById('crypto-output').textContent = '—';
+                document.getElementById('crypto-detail').textContent = '—';
+                return;
+            }
+
+            const text = document.getElementById('message').value;
+            const asciiOutput = document.getElementById('ascii-output');
+            const asciiDetailOut = document.getElementById('ascii-detail');
+            const cryptoOutput = document.getElementById('crypto-output');
+            const cryptoDetailOut = document.getElementById('crypto-detail');
+
+            if (!text) {
+                asciiOutput.textContent = '—';
+                asciiDetailOut.textContent = '—';
+                cryptoOutput.textContent = '—';
+                cryptoDetailOut.textContent = '—';
+                return;
+            }
+
+            // ASCII-Codes (wie beim Verschlüsseln)
+            const asciiCodes = [];
+            let asciiStr = '';
+            text.split('').forEach((char, i) => {
+                const code = char.charCodeAt(0);
+                asciiCodes.push(code);
+                asciiStr += `${char} → ${code}`;
+                if (i < text.length - 1) asciiStr += ', ';
+            });
+
+            asciiOutput.textContent = asciiCodes.join(' ');
+            asciiDetailOut.textContent = asciiStr;
+
+            // Entschlüsseln: m = c^d mod n
+            const decryptedCodes = [];
+            let cryptoStr = '';
+            text.split('').forEach((char, i) => {
+                const m = char.charCodeAt(0);
+                const c = modPow(m, key.e, key.n);
+                const m2 = modPow(c, key.d, key.n);
+                decryptedCodes.push(m2);
+                cryptoStr += `${c}^${key.d} mod ${key.n} = ${m2}`;
+                if (i < text.length - 1) cryptoStr += ', ';
+            });
+
+            const decryptedText = String.fromCharCode(...decryptedCodes);
+            cryptoOutput.textContent = decryptedText;
+            cryptoDetailOut.textContent = cryptoStr;
+        }
+
+        function generateRandomPrimes() {
+            let p, q;
+            do {
+                p = PRIMES[Math.floor(Math.random() * PRIMES.length)];
+                q = PRIMES[Math.floor(Math.random() * PRIMES.length)];
+            } while (p === q);
+
+            document.getElementById('p').value = p;
+            document.getElementById('q').value = q;
+            calculateRSA();
+        }
+
+        calculateRSA();
+
+        document.getElementById('p').addEventListener('input', calculateRSA);
+        document.getElementById('q').addEventListener('input', calculateRSA);
+        document.getElementById('e').addEventListener('input', calculateRSA);
+        document.getElementById('message').addEventListener('input', encryptMessage);
+    </script>
+</body>
+</html>
